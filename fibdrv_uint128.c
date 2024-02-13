@@ -1,5 +1,5 @@
-#ifndef FIB_DEV_LONGLONG
-#define FIB_DEV_LONGLONG
+#ifndef FIB_DEV_UINT128
+#define FIB_DEV_UINT128
 
 #include <linux/cdev.h>
 #include <linux/device.h>
@@ -11,27 +11,52 @@
 #include <linux/mutex.h>
 #include <linux/version.h>
 
+#include "__utility.h"
+
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("National Cheng Kung University, Taiwan");
 MODULE_DESCRIPTION("Fibonacci engine driver");
 MODULE_VERSION("0.1");
 
-#define DEV_FIBONACCI_NAME "fibonacci"
+// This is using GCC unsigned int 128 bit;
+typedef unsigned __int128 uint128_t;
 
-/* MAX_LENGTH is set to 92 because
- * ssize_t can't fit the number > 92
- */
-#define MAX_LENGTH 92
+#define DEV_FIBONACCI_NAME "fibonacci"
+#define MAX_LENGTH 300
 
 static dev_t fib_dev = 0;
 static struct class *fib_class;
 static DEFINE_MUTEX(fib_mutex);
 static int major = 0, minor = 0;
 
-static long long fib_sequence(long long k)
+static size_t uint128_len(uint128_t x)
+{
+    size_t size = 0;
+    while (x) {
+        size++;
+        x /= 10;
+    }
+    size += (size == 0);  // digit len can not less than 1
+    return size;
+}
+
+static char *uint128_to_string(uint128_t x)
+{
+    char *str = (char *) kmalloc(uint128_len(x) + 1, GFP_KERNEL);
+    char *p = str;
+    *p = '0';  // initilize the string to zero;
+    while (x) {
+        *p++ = x % 10 + '0';
+        x /= 10;
+    }
+
+    return str;
+}
+
+static size_t fib_sequence(long long k, char *buf)
 {
     /* FIXME: C99 variable-length array (VLA) is not allowed in Linux kernel. */
-    long long f[k + 2];
+    uint128_t f[k + 2];
 
     f[0] = 0;
     f[1] = 1;
@@ -39,8 +64,13 @@ static long long fib_sequence(long long k)
     for (int i = 2; i <= k; i++) {
         f[i] = f[i - 1] + f[i - 2];
     }
-
-    return f[k];
+    char *result = uint128_to_string(f[k]);
+    size_t len = uint128_len(f[k]);
+    __reverse(result, len);
+    if (copy_to_user(buf, result, len))
+        return -EFAULT;
+    kfree(result);
+    return len;
 }
 
 static int fib_open(struct inode *inode, struct file *file)
@@ -64,7 +94,7 @@ static ssize_t fib_read(struct file *file,
                         size_t size,
                         loff_t *offset)
 {
-    return (ssize_t) fib_sequence(*offset);
+    return (ssize_t) fib_sequence(*offset, buf);
 }
 
 /* write operation is skipped */

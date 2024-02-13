@@ -5,15 +5,22 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define FIB_DEV "/dev/fibonacci"
+#define __FIB_DEV_UINT128
 
+#ifdef __FIB_DEV_UINT128
+#define BUF_SIZE 256
+#else
+#define BUF_SIZE 1
+#endif
+
+#define FIB_DEV "/dev/fibonacci"
 int main()
 {
     long long sz;
 
-    char buf[1];
+    char buf[BUF_SIZE];
     char write_buf[] = "testing writing";
-    int offset = 100; /* TODO: try test something bigger than the limit */
+    int offset = 300; /* TODO: try test something bigger than the limit */
 
     int fd = open(FIB_DEV, O_RDWR);
     if (fd < 0) {
@@ -28,20 +35,37 @@ int main()
 
     for (int i = 0; i <= offset; i++) {
         lseek(fd, i, SEEK_SET);
-        sz = read(fd, buf, 1);
+        sz = read(fd, buf, sizeof(buf));
+
+#ifdef __FIB_DEV_UINT128
+        buf[sz] = '\0';  // Add terminator
+        printf("Reading from " FIB_DEV
+               " at offset %d, returned the sequence "
+               "%s.\n",
+               i, buf);
+#else
         printf("Reading from " FIB_DEV
                " at offset %d, returned the sequence "
                "%lld.\n",
                i, sz);
+#endif
     }
 
     for (int i = offset; i >= 0; i--) {
         lseek(fd, i, SEEK_SET);
-        sz = read(fd, buf, 1);
+        sz = read(fd, buf, sizeof(buf));
+#ifdef __FIB_DEV_UINT128
+        buf[sz] = '\0';  // Add terminator
+        printf("Reading from " FIB_DEV
+               " at offset %d, returned the sequence "
+               "%s.\n",
+               i, buf);
+#else
         printf("Reading from " FIB_DEV
                " at offset %d, returned the sequence "
                "%lld.\n",
                i, sz);
+#endif
     }
 
     close(fd);
