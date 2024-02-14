@@ -1,5 +1,5 @@
-#ifndef FIB_DEV_UINT128
-#define FIB_DEV_UINT128
+#ifndef FIB_DEV_LONGLONG
+#define FIB_DEV_LONGLONG
 
 #include <linux/cdev.h>
 #include <linux/device.h>
@@ -12,64 +12,42 @@
 #include <linux/version.h>
 
 #include "__utility.h"
+#include "myBigN.h"
 
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("National Cheng Kung University, Taiwan");
 MODULE_DESCRIPTION("Fibonacci engine driver");
 MODULE_VERSION("0.1");
 
-// This is using GCC unsigned int 128 bit;
-typedef unsigned __int128 uint128_t;
-
 #define DEV_FIBONACCI_NAME "fibonacci"
-#define MAX_LENGTH 200
+
+/* MAX_LENGTH is set to 92 because
+ * ssize_t can't fit the number > 92
+ */
+#define MAX_LENGTH 300
 
 static dev_t fib_dev = 0;
 static struct class *fib_class;
 static DEFINE_MUTEX(fib_mutex);
 static int major = 0, minor = 0;
 
-static size_t uint128_len(uint128_t x)
-{
-    size_t size = 0;
-    while (x) {
-        size++;
-        x /= 10;
-    }
-    size += (size == 0);  // digit len can not less than 1
-    return size;
-}
-
-static char *uint128_to_string(uint128_t x)
-{
-    char *str = (char *) kmalloc(uint128_len(x) + 1, GFP_KERNEL);
-    char *p = str;
-    *p = '0';  // initilize the string to zero;
-    while (x) {
-        *p++ = x % 10 + '0';
-        x /= 10;
-    }
-
-    return str;
-}
-
-static size_t fib_sequence(long long k, char *buf)
+static ssize_t fib_sequence(long long k, char *buf)
 {
     /* FIXME: C99 variable-length array (VLA) is not allowed in Linux kernel. */
-    uint128_t f[k + 2];
+    myBigN f[k + 2];
 
-    f[0] = 0;
-    f[1] = 1;
+    f[0] = *MY_BIGNUM_TMP("0");
+    f[1] = *MY_BIGNUM_TMP("1");
 
     for (int i = 2; i <= k; i++) {
-        f[i] = f[i - 1] + f[i - 2];
+        myBigN_Add(&f[i], &f[i - 1], &f[i - 2]);
     }
-    char *result = uint128_to_string(f[k]);
-    size_t len = uint128_len(f[k]);
-    __reverse(result, len);
-    if (copy_to_user(buf, result, len))
+    ssize_t len = myBigN_size(&f[k]);
+    if (copy_to_user(buf, myBigN_data(&f[k]), len))
         return -EFAULT;
-    kfree(result);
+    for (int i = 0; i <= k; i++)
+        myBigN_free(&f[i]);
+    printk(KERN_ALERT "f[%ld]:done\n", k);
     return len;
 }
 

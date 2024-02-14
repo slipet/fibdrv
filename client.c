@@ -5,9 +5,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define __FIB_DEV_UINT128
+//#define __FIB_DEV_UINT128
+#define __FIB_DEV_BIGNUM
 
 #ifdef __FIB_DEV_UINT128
+#define BUF_SIZE 256
+#elif defined(__FIB_DEV_BIGNUM)
 #define BUF_SIZE 256
 #else
 #define BUF_SIZE 1
@@ -20,7 +23,7 @@ int main()
 
     char buf[BUF_SIZE];
     char write_buf[] = "testing writing";
-    int offset = 300; /* TODO: try test something bigger than the limit */
+    int offset = 200; /* TODO: try test something bigger than the limit */
 
     int fd = open(FIB_DEV, O_RDWR);
     if (fd < 0) {
@@ -37,7 +40,7 @@ int main()
         lseek(fd, i, SEEK_SET);
         sz = read(fd, buf, sizeof(buf));
 
-#ifdef __FIB_DEV_UINT128
+#if defined(__FIB_DEV_UINT128) || defined(__FIB_DEV_BIGNUM)
         buf[sz] = '\0';  // Add terminator
         printf("Reading from " FIB_DEV
                " at offset %d, returned the sequence "
@@ -54,7 +57,7 @@ int main()
     for (int i = offset; i >= 0; i--) {
         lseek(fd, i, SEEK_SET);
         sz = read(fd, buf, sizeof(buf));
-#ifdef __FIB_DEV_UINT128
+#if defined(__FIB_DEV_UINT128) || defined(__FIB_DEV_BIGNUM)
         buf[sz] = '\0';  // Add terminator
         printf("Reading from " FIB_DEV
                " at offset %d, returned the sequence "

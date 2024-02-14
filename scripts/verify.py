@@ -4,7 +4,7 @@ expect = [0, 1]
 result = []
 result_split = []
 dics = []
-limit = 300 + 1
+limit = 200 + 1
 
 for i in range(2, limit):
     expect.append(expect[i - 1] + expect[i - 2])
