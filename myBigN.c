@@ -26,7 +26,7 @@ myBigN *myBigN_setEmpty(myBigN *x)
 myBigN *myBigN_free(myBigN *x)
 {
     if (myBigN_is_ptr(x))
-        kfree(x->long_num.ptr);
+        kfree(myBigN_data(x));
     x->long_num.is_ptr = false;
     return myBigN_setEmpty(x);
 }

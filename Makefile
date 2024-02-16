@@ -4,6 +4,7 @@ TARGET_MODULE := fibdrv
 obj-m += $(TARGET_MODULE).o
 #xxxx-objs can add dependencies of the kernel module 
 $(TARGET_MODULE)-objs := fibdrv_myBigN.o myBigN.o __utility.o
+#$(TARGET_MODULE)-objs := fibdrv_uint128.o __utility.o
 
 ccflags-y := -std=gnu99 -Wno-declaration-after-statement
 

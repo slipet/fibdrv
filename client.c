@@ -5,13 +5,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-//#define __FIB_DEV_UINT128
-#define __FIB_DEV_BIGNUM
+#define __FIB_DEV_UINT128
+//#define __FIB_DEV_BIGNUM
 
 #ifdef __FIB_DEV_UINT128
 #define BUF_SIZE 256
 #elif defined(__FIB_DEV_BIGNUM)
-#define BUF_SIZE 256
+#define BUF_SIZE 500
 #else
 #define BUF_SIZE 1
 #endif

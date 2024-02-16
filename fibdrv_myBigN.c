@@ -24,7 +24,7 @@ MODULE_VERSION("0.1");
 /* MAX_LENGTH is set to 92 because
  * ssize_t can't fit the number > 92
  */
-#define MAX_LENGTH 300
+#define MAX_LENGTH 200
 
 static dev_t fib_dev = 0;
 static struct class *fib_class;
@@ -47,7 +47,6 @@ static ssize_t fib_sequence(long long k, char *buf)
         return -EFAULT;
     for (int i = 0; i <= k; i++)
         myBigN_free(&f[i]);
-    printk(KERN_ALERT "f[%ld]:done\n", k);
     return len;
 }
 
